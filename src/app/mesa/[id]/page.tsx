@@ -13,7 +13,7 @@ import { TableService } from "@/services/tablesService";
 
 
 
-export default function mesa({ params }: { params: { id: string } }) {
+export default function Mesa({ params }: { params: { id: string } }) {
 
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState<boolean>(true);

@@ -11,7 +11,7 @@ import { AiOutlineClockCircle } from "react-icons/ai";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 import { MdOutlineRestaurantMenu } from "react-icons/md";
 
-export default function cozinha() {
+export default function Cozinha() {
 
     const { orders } = useOrders()
     

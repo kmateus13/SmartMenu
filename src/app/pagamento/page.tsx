@@ -7,7 +7,7 @@ import { Box, Button, Heading } from "@radix-ui/themes";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-export default function payment() {
+export default function Payment() {
 
   const [tables, setTables] = useState<Table[]>([])
   const { orders } = useOrders()

@@ -5,7 +5,7 @@ import { useOrders } from "@/hook/useOrders";
 import { Button, Flex, Radio, RadioGroup, Separator } from "@radix-ui/themes";
 import { usePathname } from "next/navigation";
 
-export default function infoTable() {
+export default function InfoTable() {
 
     const { orders, handleUpdateStatus } = useOrders()
     const router = usePathname()

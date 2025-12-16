@@ -23,6 +23,9 @@ const nextConfig: NextConfig = {
       },
       {
         hostname: 'a-static.mlcdn.com.br',
+      },
+       {
+        hostname: 'i.imgur.com',
       }
     ],
   },

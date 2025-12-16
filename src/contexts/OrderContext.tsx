@@ -3,10 +3,9 @@ import { Order, OrderStatus } from "@/entities/Order";
 import { createContext, useEffect, useState } from "react";
 import {
   createWebSocket,
-  disconnectWebSocket,
-  listenEvent,
-  sendEvent,
-} from "@/services/webSockect";
+  subscribeToOrders,
+  disconnectWebSocket
+} from "@/services/stompService";
 import { OrderService } from "@/services/ordersService";
 
 type OrderContextType = {
@@ -23,36 +22,45 @@ interface OrderProviderProps {
 export const OrderProvider = ({ children }: OrderProviderProps) => {
   const [orders, setOrders] = useState<Order[]>([]);
 
-
-  // useEffect(() => {
-  //   const fetchOrders = async () => {
-  //     try {
-  //       const fetchedOrders = await OrderService.fetchAllOrder();
-  //       setOrders(fetchedOrders);
-  //     } catch (error) {
-  //       console.log(error);
-  //     }
-  //   };
-
-  //   fetchOrders();
-
-  // }, []);	
-
-
+  // 1. Carga Inicial via REST
   useEffect(() => {
-    // Cria a conexão WebSocket
-    const socket = createWebSocket();
+    const fetchOrders = async () => {
+       try {
+         const fetchedOrders = await OrderService.fetchAllOrder();
+         setOrders(fetchedOrders);
+       } catch (error) {
+         console.log(error);
+       }
+    };
+    fetchOrders();
+  }, []);
 
-    // Ouve atualizações de pedidos via WebSocket
-    listenEvent(socket, "orders_update", (updatedOrders) => {
-      console.log("Orders updated via WebSocket:", updatedOrders);
-      setOrders(updatedOrders); // Atualiza o estado com os pedidos recebidos
-    });
+  // 2. Conexão WebSocket com Delay de Segurança
+  useEffect(() => {
+    // Inicia a conexão
+    createWebSocket();
 
-    // Limpa a conexão WebSocket ao desmontar o componente
-    // return () => {
-    //   disconnectWebSocket(socket);
-    // };
+    // --- A CORREÇÃO MÁGICA ---
+    // Esperamos 1 segundo para garantir que o Handshake terminou antes de assinar.
+    // Isso evita que o subscribe seja ignorado por "cliente desconectado".
+    const subscriptionTimer = setTimeout(() => {
+        
+        console.log("👂 Tentando assinar tópico de pedidos...");
+        
+        subscribeToOrders((updatedOrders) => {
+            console.log("🔥 Context recebeu atualização:", updatedOrders.length);
+            
+            // USE O SPREAD OPERATOR [...array]
+            // Isso força o React a entender que é um array NOVO e renderizar a tela.
+            setOrders([...updatedOrders]); 
+        });
+
+    }, 1000); // 1000ms = 1 segundo de espera
+
+    return () => {
+      clearTimeout(subscriptionTimer);
+      disconnectWebSocket();
+    };
   }, []);
 
   const handleUpdateStatus = async (ids: number[], status: OrderStatus) => {
@@ -61,22 +69,17 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
             status === "WAITING"
                 ? "IN_PRODUCTION"
                 : status === "IN_PRODUCTION"
-                    ? "READY"
+                    ? "READY" 
                     : "PAID";
 
-        // Atualiza todos os IDs de uma vez
-        const updatedCount = await OrderService.updateOrders(ids, newStatus);
+        // Chama REST e o Java avisa o WebSocket
+        await OrderService.updateOrders(ids, newStatus);
+        console.log(`Status atualizado para ${newStatus}. Aguardando WebSocket...`);
 
-        console.log(`${updatedCount} orders updated.`);
-
-        // Emite o evento para o WebSocket
-        const socket = createWebSocket();
-        sendEvent(socket, "orders_update", { ids, status: newStatus });
     } catch (error) {
         console.error("Failed to update order status:", error);
     }
-};
-
+  };
 
   return (
     <OrderContext.Provider value={{ orders, handleUpdateStatus }}>
